@@ -1,0 +1,230 @@
+Digital Notary: Design Details (REST API)
+(ToDO: Error Handling)
+
+Client side, we use 'requests' to invoke the REST API. Server side we'll use 'FlaskAPI' to build a REST service for the following:
+
+
+We could do single sign-on, or not. If we did SSO, we need to return a session id on successful authentication. For the intial pass, we will authenticate each time. This means that we have to GET a challenge and POST the signed challenge each time... (Discussion here...)
+
+
+RESOURCE: /govern8r/api/v1/pubkey (GET)
+
+Response: 
+{ 
+	govern8r_pubkey: "" ## the pubkey for govern8r
+}
+
+Here is our homegrown protocol for doing secure json over http. Raju please check this!!!
+
+Client to Server:
+
+	1. Create json payload: 
+		payload = {....} 
+	2. Encrypt payload with govern8r's public key: 
+		ciphertext = encrypt(payload, govern8r_pubkey)
+	3. Sign encrypted payload with client's private key: 
+		signature = sign(ciphertext, client_privkey)
+	4. Create payload with signature and ciphertext:
+		payload = 
+		{
+			signature: "", ##  the signature from step 3
+			message: "" ## the ciphertext from step 2
+		}
+	5. Send this as the REST request payload.
+	6. Server will verify the message with the signature and if valid, then the server will decrypt it using its private key:
+		if (verify(payload, client_pubkey))
+			json = decrypt (payload, govern8r_privkey)
+
+Server to Client:
+	1. Create json payload: 
+		payload = {....} 
+	2. Encrypt payload with client's public key: 
+		ciphertext = encrypt(payload, client_pubkey)
+	3. Sign encrypted payload with govern8r's private key: 
+		signature = sign(ciphertext, govern8r_privkey)
+	4. Create payload with signature and ciphertext:
+		payload = 
+		{
+			signature: "", ##  the signature from step 3
+			message: "" ## the ciphertext from step 2
+		}
+	5. Send this as the REST response payload.
+	6. Client will verify the message with the signature and if valid, then the server will decrypt it using its private key:
+		if (verify(payload, govern8r_pubkey))
+			json = decrypt (payload, client_privkey)
+
+
+Authentication protocol (inspired by BitID)
+
+This probably should be done using JSON Web Tokens. That said, this is simple enough. And it is only for GETs
+
+1. Registered client requests a challenge:
+	a. /govern8r/api/v1/challenge/<address> (GET)
+2. If server detects that the client hasn't successfully registered, the authentication fails
+3. If client is registered, the server:
+	a. Generates a nonce and stores it in the DB for that client.
+	b. Challenges: sends the nonce back to the client (in signed, encrypted payload)
+4. Client responds to challenge:
+	a. verifies signature
+	b. decrypts payload
+	c. signs nonce
+	d. creates new payload, signs and encrypts it
+	e. /govern8r/api/v1/challenge/<address> (PUT)
+5. Server authenticates challenge assertion
+	a. verifies signature
+	b. decrypts payload
+	c. checks nonce signature
+	d. checks nonce still exists in DB
+	e. constructs client fingerprint (user agent + ???)
+	f. govern8r_token = hash(hash(fingerprint) + hash(nonce))
+	g. set response cookie: govern8r_token
+6. Client sends authentication token to server - client address is included in URI:
+	a. Server constructs client fingerprint (user agent + ???)
+	b. Server retrieves nonce associated with client address
+	c. Server computes hash(hash(fingerprint) + hash(nonce))
+	d. If govern8r_token cookie matches the hash, user is authenticated...
+	e. authentication token is regenerated after every auth... token rotation! Client must take
+	   care to store the cookie each time.
+
+
+
+# Authentication API
+RESOURCE: /govern8r/api/v1/challenge/<address> (GET)
+
+Response: 
+{ 
+	nonce: "" ## nonce
+}
+
+RESOURCE: /govern8r/api/v1/challenge/<address> (PUT)
+
+Request:
+{ 
+	signed_nonce: "" 	## the above nonce signed by the private key associated with <address>. 
+						## Authentication will fail if the user hasn't registered.
+}
+
+Response Header: 
+{ 
+	cookie -> govern8r_token: "" ## if authentication success, then a valid token will be returned.
+}
+
+# Registration API
+
+RESOURCE: /govern8r/api/v1/account/<address> (PUT)
+
+Request:
+{ 
+	public_key: "", ## Client's public key
+	email: ""  ## the email address for the account
+}
+
+Response: 
+{ 
+}
+
+RESOURCE: /govern8r/api/v1/account/<address> (GET)
+
+Request Header:
+{
+	cookie -> govern8r_token: "" ## the govern8r authentication token
+}
+
+Response: 
+{ 
+	public_key: "", ## client's public key
+	email: "",  ## the email address for the account
+	date_created: "" ## the date the user was created
+}
+
+# Confirmation
+
+RESOURCE: /govern8r/api/v1/account/<address>/<nonce> (GET)
+
+Response:
+{
+}
+
+
+RESOURCE: /govern8r/api/v1/account/<address>/notarization/<document_hash> (PUT)
+
+Request Header:
+{
+	cookie -> govern8r_token: "" ## the govern8r authentication token
+}
+
+Request:
+{
+	metadata: 
+	{
+		title: "",
+		creator: "",
+		subject: "",
+		description: "",
+		publisher: "",
+		contributor: "",
+		date: "",
+		type: "",
+		format: "",
+		identifier: "",
+		source: "",
+		language: "",
+		relation: "",
+		coverage: "",
+		rights: ""
+	}
+}
+
+Response: 
+{ 
+	tx_hash: "" ## the blockchain transaction
+}
+
+RESOURCE: /govern8r/api/v1/account/<address>/notarization/<document_hash>/status (GET)
+
+Request Header:
+{
+	cookie -> govern8r_token: "" ## the govern8r authentication token
+}
+
+Response:
+{
+	fees: int,
+	confidence: real,
+	received: "",
+	preference: "low",
+	status: "",
+	confirmations: int,
+ 	metadata: 
+	{
+		title: "",
+		creator: "",
+		subject: "",
+		description: "",
+		publisher: "",
+		contributor: "",
+		date: "",
+		type: "",
+		format: "",
+		identifier: "",
+		source: "",
+		language: "",
+		relation: "",
+		coverage: "",
+		rights: ""
+	}
+
+}
+
+# Add document.
+# If document exists, return 500
+RESOURCE: /govern8r/api/v1/account/<address>/document/<document_hash> (PUT)
+
+# Download document.
+# If document doesn't exists, return 404.
+# If document exists but doesn't belong to the authenticated owner of this address, return 403.
+RESOURCE: /govern8r/api/v1/account/<address>/document/<document_hash> (GET)
+
+# Check for existence of a document. If document doesn't exist, return 404
+# If document exists, return status ('ON_FILE', 'NOT_ON_FILE') and address of owner
+RESOURCE: /govern8r/api/v1/account/<address>/document/<document_hash>/status (GET)
