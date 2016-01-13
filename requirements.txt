@@ -14,7 +14,7 @@ enum34==1.1.2
 Flask==0.10.1
 Flask-API==0.6.4
 futures==3.0.3
-govern8rLib==0.0.1
+git+https://github.com/cypherhat/govern8rLib
 idna==2.0
 ipaddress==1.0.15
 itsdangerous==0.24
@@ -26,7 +26,7 @@ pybitid==0.0.4
 pycparser==2.14
 pycrypto==2.6.1
 pyOpenSSL==0.15.1
-python-bitcoinlib===0.5.1-SNAPSHOT
+git+https://github.com/cypherhat/python-bitcoinlib
 python-dateutil==2.2
 requests==2.4.3
 rsa==3.2.3
