@@ -78,7 +78,7 @@ class AccountService(object):
         except botocore.exceptions.ClientError as e:
             if e.response['Error']['Code'] == 'ResourceInUseException':
                 print("Houston, we have a problem: the Account Table exists.")
-    
+
     def create_account(self, address, account):
         if not check_account(account):
             return False
@@ -102,10 +102,35 @@ class AccountService(object):
             return None
 
     def send_confirmation_email(self, account):
-        server_url=config.get_server_url()
+        server_url = config.get_server_url()
         confirmation_url = server_url+'/api/v1/account/'+account['address']+'/'+account['nonce']
+        client = boto3.client('ses', region_name='us-east-1')
+
+        response = client.send_email(
+            Source='thegovern8r@gmail.com',
+            Destination={
+                'ToAddresses': [account['email']
+                ]
+            },
+            Message={
+                'Subject': {
+                    'Data': 'Please confirm your govern8r account',
+                    'Charset': 'iso-8859-1'
+                },
+                'Body': {
+                    'Text': {
+                        'Data': 'To complete your registration with govern8r please click the link',
+                        'Charset': 'iso-8859-1'
+                    },
+                    'Html': {
+                        'Data': confirmation_url,
+                        'Charset': 'iso-8859-1'
+                    }
+                }
+            }
+        )
         print(confirmation_url)
-        return confirmation_url
+        return response
 
     def update_account_status(self, account, new_status):
         self.account_table.update_item(
