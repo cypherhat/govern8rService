@@ -11,7 +11,7 @@ import hashlib
 import configuration
 
 config = configuration.NotaryConfiguration()
-app = FlaskAPI(__name__)
+application = FlaskAPI(__name__)
 wallet = NotaryWallet("foobar")
 account_service = AccountService(wallet)
 notarization_service = NotarizationService(wallet)
@@ -141,12 +141,12 @@ def security_required(f):
     return decorated_function
 
 
-@app.route("/", methods=['GET'])
+@application.route("/", methods=['GET'])
 def hello_server():
     return {}
 
 
-@app.route("/govern8r/api/v1/pubkey", methods=['GET'])
+@application.route("/govern8r/api/v1/pubkey", methods=['GET'])
 def pubkey():
     """
     Return server public key. The key is encoded in hex and needs to be decoded
@@ -163,7 +163,7 @@ def pubkey():
     return resp
 
 
-@app.route("/govern8r/api/v1/challenge/<address>", methods=['PUT'])
+@application.route("/govern8r/api/v1/challenge/<address>", methods=['PUT'])
 @address_required
 @security_required
 def put_challenge(address):
@@ -183,7 +183,7 @@ def put_challenge(address):
     return good_response
 
 
-@app.route("/govern8r/api/v1/challenge/<address>", methods=['GET'])
+@application.route("/govern8r/api/v1/challenge/<address>", methods=['GET'])
 @address_required
 def get_challenge(address):
     """
@@ -200,7 +200,7 @@ def get_challenge(address):
     return good_response
 
 
-@app.route("/govern8r/api/v1/account/<address>", methods=['GET'])
+@application.route("/govern8r/api/v1/account/<address>", methods=['GET'])
 @login_required
 @address_required
 def get_account(address):
@@ -218,7 +218,7 @@ def get_account(address):
     return authenticated_response
 
 
-@app.route("/govern8r/api/v1/account/<address>", methods=['PUT'])
+@application.route("/govern8r/api/v1/account/<address>", methods=['PUT'])
 @security_required
 def put_account(address):
     """
@@ -238,7 +238,7 @@ def put_account(address):
         return good_response
 
 
-@app.route("/govern8r/api/v1/account/<address>/<nonce>", methods=['GET'])
+@application.route("/govern8r/api/v1/account/<address>/<nonce>", methods=['GET'])
 @address_required
 def confirm_account(address, nonce):
     """
@@ -255,7 +255,7 @@ def confirm_account(address, nonce):
     return good_response
 
 
-@app.route("/govern8r/api/v1/account/<address>/notarization/<document_hash>", methods=['PUT'])
+@application.route("/govern8r/api/v1/account/<address>/notarization/<document_hash>", methods=['PUT'])
 @login_required
 @address_required
 @security_required
@@ -289,7 +289,7 @@ def notarization(address, document_hash):
         return unauthenticated_response
 
 
-@app.route("/govern8r/api/v1/account/<address>/notarization/<document_hash>/status", methods=['GET'])
+@application.route("/govern8r/api/v1/account/<address>/notarization/<document_hash>/status", methods=['GET'])
 @login_required
 @notarization_required
 @address_required
@@ -318,7 +318,7 @@ def notarization_status(address, document_hash):
     return authenticated_response
 
 
-@app.route('/govern8r/api/v1/account/<address>/document/<document_hash>', methods=['PUT'])
+@application.route('/govern8r/api/v1/account/<address>/document/<document_hash>', methods=['PUT'])
 @login_required
 @notarization_required
 @address_required
@@ -339,7 +339,7 @@ def upload_document(address, document_hash):
     return authenticated_response
 
 
-@app.route('/govern8r/api/v1/account/<address>/document/<document_hash>', methods=['GET'])
+@application.route('/govern8r/api/v1/account/<address>/document/<document_hash>', methods=['GET'])
 @login_required
 @notarization_required
 @address_required
@@ -364,7 +364,7 @@ def download_document(address, document_hash):
     return redirect(bucket_url)
 
 
-@app.route('/govern8r/api/v1/account/<address>/document/<document_hash>/status', methods=['GET'])
+@application.route('/govern8r/api/v1/account/<address>/document/<document_hash>/status', methods=['GET'])
 @login_required
 @notarization_required
 @address_required
@@ -388,7 +388,7 @@ def check_document_status(address, document_hash):
     return authenticated_response
 
 
-@app.route("/govern8r/api/v1/account/<address>/test", methods=['GET'])
+@application.route("/govern8r/api/v1/account/<address>/test", methods=['GET'])
 @login_required
 @address_required
 def test_authentication(address):
@@ -405,4 +405,4 @@ def test_authentication(address):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, use_reloader=False,ssl_context='adhoc')
+    application.run(debug=True, use_reloader=False,ssl_context='adhoc')
