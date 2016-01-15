@@ -1,14 +1,15 @@
-from flask import request, Response, json, g, redirect
+import hashlib
 from functools import wraps
 
-from flask_api import FlaskAPI
-from wallet import NotaryWallet
-from services.account_service import AccountService
-from services.notarization_service import NotarizationService
-from message import SecureMessage
 import base58
-import hashlib
 import configuration
+from flask import request, Response, json, g, redirect
+from flask_api import FlaskAPI
+from message import SecureMessage
+from wallet import NotaryWallet
+
+from account_service import AccountService
+from notarization_service import NotarizationService
 
 config = configuration.NotaryConfiguration()
 application = FlaskAPI(__name__)
