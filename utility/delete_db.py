@@ -3,7 +3,7 @@ import boto3
 import botocore
 import configuration
 
-config = configuration.NotaryConfiguration()
+config = configuration.NotaryConfiguration('../notaryconfig.ini')
 
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1', endpoint_url=config.get_db_url())
 try:
