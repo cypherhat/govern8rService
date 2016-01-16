@@ -6,14 +6,15 @@ import configuration
 from flask import request, Response, json, g, redirect
 from flask_api import FlaskAPI
 from message import SecureMessage
-from wallet import NotaryWallet
+from wallet import ServerWallet
 import getpass
 from account_service import AccountService
 from notarization_service import NotarizationService
 
 config = configuration.NotaryConfiguration('./notaryconfig.ini')
+keyId = config.get_key_id()
 application = FlaskAPI(__name__)
-wallet = NotaryWallet("foobar")
+wallet = ServerWallet(keyId)
 account_service = AccountService(wallet)
 notarization_service = NotarizationService(wallet)
 secure_message = SecureMessage(wallet)
