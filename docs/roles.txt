@@ -1,0 +1,9 @@
+AWSCloudHSMRole
+AmazonS3FullAccess
+AmazonAPIGatewayInvokeFullAccess
+AmazonAPIGatewayPushToCloudWatchLogs
+AWSCloudHSMFullAccess
+AmazonDynamoDBFullAccess
+AutoScalingNotificationAccessRole
+AmazonSESFullAccess
+AmazonDynamoDBFullAccesswithDataPipeline
