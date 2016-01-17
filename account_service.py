@@ -11,7 +11,7 @@ import time
 from bitcoinlib.core.key import CPubKey
 import configuration
 
-config = configuration.NotaryConfiguration()
+config = configuration.NotaryConfiguration('./notaryconfig.ini')
 
 
 def to_bytes(x): return x if bytes == str else x.encode()

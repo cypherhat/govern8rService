@@ -1,21 +1,25 @@
-from flask import request, Response, json, g, redirect
-from functools import wraps
-
-from flask_api import FlaskAPI
-from wallet import NotaryWallet
-from services.account_service import AccountService
-from services.notarization_service import NotarizationService
-from message import SecureMessage
-import base58
 import hashlib
+from functools import wraps
+import socket
+import base58
 import configuration
+from flask import request, Response, json, g, redirect
+from flask_api import FlaskAPI
+from message import SecureMessage
+from wallet import ServerWallet
+import getpass
+from account_service import AccountService
+from notarization_service import NotarizationService
 
-config = configuration.NotaryConfiguration()
+config = configuration.NotaryConfiguration('./notaryconfig.ini')
+keyId = config.get_key_id()
 application = FlaskAPI(__name__)
-wallet = NotaryWallet("foobar")
+wallet = ServerWallet(keyId)
 account_service = AccountService(wallet)
 notarization_service = NotarizationService(wallet)
 secure_message = SecureMessage(wallet)
+print ("Whoami: %s " % getpass.getuser())
+print ("Where am I: %s " % socket.gethostname())
 
 
 unauthenticated_response = Response(json.dumps({}), status=401, mimetype='application/json')
@@ -230,7 +234,6 @@ def put_account(address):
     """
 
     good_response = Response(json.dumps({}), status=200, mimetype='application/json')
-
     response = account_service.create_account(address, g.message)
     if response is None:
         return get_bad_response(500)
