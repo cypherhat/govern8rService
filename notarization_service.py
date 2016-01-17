@@ -42,6 +42,8 @@ class NotarizationService(object):
             self.notarization_table = self.dynamodb.Table('Notarization')
             print("Notarization Table is %s" % self.notarization_table.table_status)
         except botocore.exceptions.ClientError as e:
+            print ("Problem accessing notarization table %s " % e.message)
+            print (e)
             if e.response['Error']['Code'] == 'ResourceNotFoundException':
                 self.create_notarization_table()
 
