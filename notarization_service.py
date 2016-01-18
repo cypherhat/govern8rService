@@ -38,7 +38,7 @@ def check_notarization(notarization):
 class NotarizationService(object):
     def __init__(self, wallet):
         self.wallet = wallet
-        self.dynamodb = boto3.resource('dynamodb', region_name=config.get_aws_region())
+        self.dynamodb = resource_factory.get_dynamodb(config)
         try:
             self.notarization_table = self.dynamodb.Table('Notarization')
             print("Notarization Table is %s" % self.notarization_table.table_status)
