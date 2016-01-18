@@ -15,6 +15,10 @@ config = configuration.NotaryConfiguration('./notaryconfig.ini')
 keyId = config.get_key_id()
 application = FlaskAPI(__name__)
 wallet = wallet.create_wallet(config.get_wallet_type(), keyId)
+if config.is_local_host():
+    print("Local host")
+else:
+    print("Remote host")
 account_service = AccountService(wallet)
 notarization_service = NotarizationService(wallet)
 secure_message = SecureMessage(wallet)

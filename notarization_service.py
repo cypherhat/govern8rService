@@ -6,6 +6,7 @@ from boto3.dynamodb.conditions import Key
 import hashlib
 from datetime import datetime
 import configuration
+import resource_factory
 
 config = configuration.NotaryConfiguration('./notaryconfig.ini')
 blockcypher_token = config.get_block_cypher_token()
@@ -37,14 +38,14 @@ def check_notarization(notarization):
 class NotarizationService(object):
     def __init__(self, wallet):
         self.wallet = wallet
-        self.dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+        self.dynamodb = resource_factory.get_dynamodb(config)
         try:
             self.notarization_table = self.dynamodb.Table('Notarization')
             print("Notarization Table is %s" % self.notarization_table.table_status)
         except botocore.exceptions.ClientError as e:
             print ("Problem accessing notarization table %s " % e.message)
-            print (e)
             if e.response['Error']['Code'] == 'ResourceNotFoundException':
+                print ("Attempting to create Notarization table since it did not exist.")
                 self.create_notarization_table()
 
     def create_notarization_table(self):
