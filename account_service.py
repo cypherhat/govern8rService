@@ -6,6 +6,7 @@ from bitcoinlib.wallet import P2PKHBitcoinAddress
 from datetime import datetime
 import hashlib
 import os
+import sys
 import random
 import time
 from bitcoinlib.core.key import CPubKey
@@ -50,29 +51,31 @@ class AccountService(object):
             self.account_table = self.dynamodb.Table('Account')
             print("Account Table is %s" % self.account_table.table_status)
         except botocore.exceptions.ClientError as e:
+            print ("Problem accessing account table %s " % e.message)
+            print (e)
             if e.response['Error']['Code'] == 'ResourceNotFoundException':
                 self.create_account_table()
 
     def create_account_table(self):
         try:
             self.account_table = self.dynamodb.create_table(
-                TableName='Account',
-                KeySchema=[
-                    {
-                        'AttributeName': 'address',
-                        'KeyType': 'HASH'
+                    TableName='Account',
+                    KeySchema=[
+                        {
+                            'AttributeName': 'address',
+                            'KeyType': 'HASH'
+                        }
+                    ],
+                    AttributeDefinitions=[
+                        {
+                            'AttributeName': 'address',
+                            'AttributeType': 'S'
+                        },
+                    ],
+                    ProvisionedThroughput={
+                        'ReadCapacityUnits': 10,
+                        'WriteCapacityUnits': 10
                     }
-                ],
-                AttributeDefinitions=[
-                    {
-                        'AttributeName': 'address',
-                        'AttributeType': 'S'
-                    },
-                ],
-                ProvisionedThroughput={
-                    'ReadCapacityUnits': 10,
-                    'WriteCapacityUnits': 10
-                }
             )
             print("Account Table is %s" % self.account_table.table_status)
         except botocore.exceptions.ClientError as e:
@@ -107,53 +110,53 @@ class AccountService(object):
         client = boto3.client('ses', region_name='us-east-1')
 
         response = client.send_email(
-            Source='thegovern8r@gmail.com',
-            Destination={
-                'ToAddresses': [account['email']
-                ]
-            },
-            Message={
-                'Subject': {
-                    'Data': 'Please confirm your govern8r account',
-                    'Charset': 'iso-8859-1'
+                Source='thegovern8r@gmail.com',
+                Destination={
+                    'ToAddresses': [account['email']
+                                    ]
                 },
-                'Body': {
-                    'Text': {
-                        'Data': 'To complete your registration with govern8r please click the link',
+                Message={
+                    'Subject': {
+                        'Data': 'Please confirm your govern8r account',
                         'Charset': 'iso-8859-1'
                     },
-                    'Html': {
-                        'Data': confirmation_url,
-                        'Charset': 'iso-8859-1'
+                    'Body': {
+                        'Text': {
+                            'Data': 'To complete your registration with govern8r please click the link',
+                            'Charset': 'iso-8859-1'
+                        },
+                        'Html': {
+                            'Data': confirmation_url,
+                            'Charset': 'iso-8859-1'
+                        }
                     }
                 }
-            }
         )
         print(confirmation_url)
         return response
 
     def update_account_status(self, account, new_status):
         self.account_table.update_item(
-            Key={
-                'address': account['address']
-            },
-            UpdateExpression="set account_status = :_status",
-            ExpressionAttributeValues={
-                ':_status': new_status
-            },
-            ReturnValues="UPDATED_NEW"
+                Key={
+                    'address': account['address']
+                },
+                UpdateExpression="set account_status = :_status",
+                ExpressionAttributeValues={
+                    ':_status': new_status
+                },
+                ReturnValues="UPDATED_NEW"
         )
 
     def update_account_nonce(self, account, new_nonce):
         self.account_table.update_item(
-            Key={
-                'address': account['address']
-            },
-            UpdateExpression="set nonce = :_nonce",
-            ExpressionAttributeValues={
-                ':_nonce': new_nonce
-            },
-            ReturnValues="UPDATED_NEW"
+                Key={
+                    'address': account['address']
+                },
+                UpdateExpression="set nonce = :_nonce",
+                ExpressionAttributeValues={
+                    ':_nonce': new_nonce
+                },
+                ReturnValues="UPDATED_NEW"
         )
 
     def get_challenge(self, address):
@@ -172,8 +175,8 @@ class AccountService(object):
             self.update_account_status(account, 'CONFIRMED')
             return True
         else:
-            return False        
-    
+            return False
+
     def delete_account(self, account):
         if account is None:
             return False
@@ -181,8 +184,8 @@ class AccountService(object):
         if not self.get_account_by_public_key(account.public_key) is None:
             return True
         else:
-            return False        
-    
+            return False
+
     def get_account_by_address(self, address):
         response = self.account_table.query(KeyConditionExpression=Key('address').eq(address))
 

@@ -30,6 +30,7 @@ git+https://github.com/cypherhat/python-bitcoinlib
 python-dateutil==2.2
 requests==2.4.3
 rsa==3.2.3
+simple-crypt==4.1.7
 six==1.10.0
 simple-crypt==4.1.7
 Werkzeug==0.11.3
