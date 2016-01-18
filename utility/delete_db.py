@@ -5,11 +5,12 @@ import configuration
 
 config = configuration.NotaryConfiguration('../notaryconfig.ini')
 
-dynamodb = boto3.resource('dynamodb', region_name='us-east-1', endpoint_url=config.get_db_url())
+dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 try:
     account_table = dynamodb.Table('Account')
     account_table.delete()
     print(account_table.table_status)
+    print("Account Table status: %s " % account_table.table_status)
 except botocore.exceptions.ClientError as e:
     print(e.response['Error']['Code'])
 
@@ -17,6 +18,6 @@ except botocore.exceptions.ClientError as e:
 try:
     notarization_table = dynamodb.Table('Notarization')
     notarization_table.delete()
-    print("Notarization Table status:", notarization_table.table_status)
+    print("Notarization Table status: %s " % notarization_table.table_status)
 except botocore.exceptions.ClientError as e:
     print(e.response['Error']['Code'])
