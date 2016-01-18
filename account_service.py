@@ -46,7 +46,7 @@ class AccountService(object):
     def __init__(self, wallet):
         # Initializes some dictionaries to store accounts
         self.wallet = wallet
-        self.dynamodb = boto3.resource('dynamodb', region_name='us-east-1', endpoint_url=config.get_db_url())
+        self.dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
         try:
             self.account_table = self.dynamodb.Table('Account')
             print("Account Table is %s" % self.account_table.table_status)
