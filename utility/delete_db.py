@@ -1,11 +1,11 @@
 from __future__ import print_function # Python 2/3 compatibility
-import boto3
 import botocore
 import configuration
+import resource_factory
 
 config = configuration.NotaryConfiguration('../notaryconfig.ini')
 
-dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+dynamodb = resource_factory.get_dynamodb(config)
 try:
     account_table = dynamodb.Table('Account')
     account_table.delete()

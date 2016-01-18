@@ -6,11 +6,11 @@ from bitcoinlib.wallet import P2PKHBitcoinAddress
 from datetime import datetime
 import hashlib
 import os
-import sys
 import random
 import time
 from bitcoinlib.core.key import CPubKey
 import configuration
+import resource_factory
 
 config = configuration.NotaryConfiguration('./notaryconfig.ini')
 
@@ -46,14 +46,14 @@ class AccountService(object):
     def __init__(self, wallet):
         # Initializes some dictionaries to store accounts
         self.wallet = wallet
-        self.dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+        self.dynamodb = resource_factory.get_dynamodb(config)
         try:
             self.account_table = self.dynamodb.Table('Account')
             print("Account Table is %s" % self.account_table.table_status)
         except botocore.exceptions.ClientError as e:
             print ("Problem accessing account table %s " % e.message)
-            print (e)
             if e.response['Error']['Code'] == 'ResourceNotFoundException':
+                print ("Attempting to create Account table since it did not exist.")
                 self.create_account_table()
 
     def create_account_table(self):
