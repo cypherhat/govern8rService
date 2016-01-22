@@ -6,6 +6,7 @@ from bitcoinlib.wallet import P2PKHBitcoinAddress
 from datetime import datetime
 import hashlib
 import os
+import log_handlers
 import random
 import time
 from bitcoinlib.core.key import CPubKey
@@ -43,17 +44,17 @@ def check_account(account):
 
 class AccountService(object):
 
-    def __init__(self, wallet):
+    def __init__(self, wallet, logger):
         # Initializes some dictionaries to store accounts
         self.wallet = wallet
+        self.logger = logger
         self.dynamodb = resource_factory.get_dynamodb(config)
         try:
             self.account_table = self.dynamodb.Table('Account')
-            print("Account Table is %s" % self.account_table.table_status)
+            self.logger.debug("Account Table is %s" % self.account_table.table_status)
         except botocore.exceptions.ClientError as e:
-            print ("Problem accessing account table %s " % e.message)
+            self.logger.exception("Problem accessing account table %s " % e.response)
             if e.response['Error']['Code'] == 'ResourceNotFoundException':
-                print ("Attempting to create Account table since it did not exist.")
                 self.create_account_table()
 
     def create_account_table(self):
@@ -77,10 +78,10 @@ class AccountService(object):
                         'WriteCapacityUnits': 10
                     }
             )
-            print("Account Table is %s" % self.account_table.table_status)
+            self.logger.debug("Account Table is %s" % self.account_table.table_status)
         except botocore.exceptions.ClientError as e:
             if e.response['Error']['Code'] == 'ResourceInUseException':
-                print("Houston, we have a problem: the Account Table exists.")
+                self.logger.exception("Houston, we have a problem: the Account Table exists.")
 
     def create_account(self, address, account):
         if not check_account(account):
@@ -107,57 +108,66 @@ class AccountService(object):
     def send_confirmation_email(self, account):
         server_url = config.get_server_url()
         confirmation_url = server_url+'/api/v1/account/'+account['address']+'/'+account['nonce']
-        client = boto3.client('ses', region_name='us-east-1')
+        try:
+            client = boto3.client('ses', region_name='us-east-1')
 
-        response = client.send_email(
-                Source='thegovern8r@gmail.com',
-                Destination={
-                    'ToAddresses': [account['email']
-                                    ]
-                },
-                Message={
-                    'Subject': {
-                        'Data': 'Please confirm your govern8r account',
-                        'Charset': 'iso-8859-1'
+            response = client.send_email(
+                    Source=config.get_sender_email(),
+                    Destination={
+                        'ToAddresses': [account['email']
+                                        ]
                     },
-                    'Body': {
-                        'Text': {
-                            'Data': 'To complete your registration with govern8r please click the link',
+                    Message={
+                        'Subject': {
+                            'Data': 'Please confirm your govern8r account',
                             'Charset': 'iso-8859-1'
                         },
-                        'Html': {
-                            'Data': confirmation_url,
-                            'Charset': 'iso-8859-1'
+                        'Body': {
+                            'Text': {
+                                'Data': 'To complete your registration with govern8r please click the link',
+                                'Charset': 'iso-8859-1'
+                            },
+                            'Html': {
+                                'Data': confirmation_url,
+                                'Charset': 'iso-8859-1'
+                            }
                         }
                     }
-                }
-        )
-        print(confirmation_url)
+            )
+        except botocore.exceptions.ClientError as e:
+            self.logger.exception("Failed send confirmation email %s" % e.response)
+        self.logger.debug("Confirmation URL %s " % confirmation_url)
         return response
 
     def update_account_status(self, account, new_status):
-        self.account_table.update_item(
-                Key={
-                    'address': account['address']
-                },
-                UpdateExpression="set account_status = :_status",
-                ExpressionAttributeValues={
-                    ':_status': new_status
-                },
-                ReturnValues="UPDATED_NEW"
-        )
+        try:
+            self.account_table.update_item(
+                    Key={
+                        'address': account['address']
+                    },
+                    UpdateExpression="set account_status = :_status",
+                    ExpressionAttributeValues={
+                        ':_status': new_status
+                    },
+                    ReturnValues="UPDATED_NEW"
+            )
+        except botocore.exceptions.ClientError as e:
+            self.logger.exception("Failed to update account status %s" % e.response)
 
     def update_account_nonce(self, account, new_nonce):
-        self.account_table.update_item(
-                Key={
-                    'address': account['address']
-                },
-                UpdateExpression="set nonce = :_nonce",
-                ExpressionAttributeValues={
-                    ':_nonce': new_nonce
-                },
-                ReturnValues="UPDATED_NEW"
-        )
+        try:
+            self.account_table.update_item(
+                    Key={
+                        'address': account['address']
+                    },
+                    UpdateExpression="set nonce = :_nonce",
+                    ExpressionAttributeValues={
+                        ':_nonce': new_nonce
+                    },
+                    ReturnValues="UPDATED_NEW"
+            )
+        except botocore.exceptions.ClientError as e:
+            self.logger.exception("Failed to update account nonce %s" % e.response)
 
     def get_challenge(self, address):
         account = self.get_account_by_address(address)
@@ -177,17 +187,11 @@ class AccountService(object):
         else:
             return False
 
-    def delete_account(self, account):
-        if account is None:
-            return False
-
-        if not self.get_account_by_public_key(account.public_key) is None:
-            return True
-        else:
-            return False
-
     def get_account_by_address(self, address):
-        response = self.account_table.query(KeyConditionExpression=Key('address').eq(address))
+        try:
+            response = self.account_table.query(KeyConditionExpression=Key('address').eq(address))
+        except botocore.exceptions.ClientError as e:
+            self.logger.exception("Failed read account table %s" % e.response)
 
         if len(response['Items']) == 0:
             return None
