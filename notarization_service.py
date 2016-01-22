@@ -12,41 +12,41 @@ config = configuration.NotaryConfiguration('./notaryconfig.ini')
 blockcypher_token = config.get_block_cypher_token()
 
 
-def add_to_blockchain(data_value):
-    try:
-        response = embed_data(to_embed=data_value, api_key=blockcypher_token, data_is_hex=True,
-                              coin_symbol=config.get_coin_network())
-        transaction_hash = response['hash']
-        return transaction_hash
-    except requests.ConnectionError as e:
-        print(e.message)
-        return None
-
-
-def check_notarization(notarization):
-    if (notarization is None) or \
-            (not notarization['document_hash']) or \
-            (not notarization['notary_hash']) or \
-            (not notarization['address']) or \
-            (not notarization['date_created']) or \
-            (not notarization['transaction_hash']):
-        return False
-    else:
-        return True
-
 
 class NotarizationService(object):
-    def __init__(self, wallet):
+    def __init__(self, wallet, logger):
         self.wallet = wallet
+        self.logger = logger
         self.dynamodb = resource_factory.get_dynamodb(config)
         try:
             self.notarization_table = self.dynamodb.Table('Notarization')
-            print("Notarization Table is %s" % self.notarization_table.table_status)
+            self.logger.debug("Notarization Table is %s" % self.notarization_table.table_status)
         except botocore.exceptions.ClientError as e:
-            print ("Problem accessing notarization table %s " % e.message)
+            self.logger.exception("Problem accessing notarization table %s " % e.response)
             if e.response['Error']['Code'] == 'ResourceNotFoundException':
-                print ("Attempting to create Notarization table since it did not exist.")
+                self.logger.debug("Attempting to create Notarization table since it did not exist.")
                 self.create_notarization_table()
+
+    def add_to_blockchain(self, data_value):
+        try:
+            response = embed_data(to_embed=data_value, api_key=blockcypher_token, data_is_hex=True,
+                                  coin_symbol=config.get_coin_network())
+            transaction_hash = response['hash']
+            return transaction_hash
+        except requests.ConnectionError as e:
+            self.logger.exception("Failed to update account nonce %s" % e.message)
+            return None
+
+    def check_notarization(self, notarization):
+        if (notarization is None) or \
+                (not notarization['document_hash']) or \
+                (not notarization['notary_hash']) or \
+                (not notarization['address']) or \
+                (not notarization['date_created']) or \
+                (not notarization['transaction_hash']):
+            return False
+        else:
+            return True
 
     def create_notarization_table(self):
         try:
@@ -69,9 +69,9 @@ class NotarizationService(object):
                         'WriteCapacityUnits': 10
                     }
             )
-            print("Notarization Table is %s" % self.notarization_table.table_status)
+            self.logger.debug("Notarization Table is %s" % self.notarization_table.table_status)
         except botocore.exceptions.ClientError as e:
-            print(e.response['Error']['Code'])
+            self.logger.exception("Problem accessing notarization table %s " % e.response)
 
     def sign_and_hash(self, document_hash):
         signature = self.wallet.sign(document_hash)
@@ -84,7 +84,7 @@ class NotarizationService(object):
         notary_hash = self.sign_and_hash(notarization['document_hash'])
         hex_hash = str(notary_hash).encode("hex")
         notarization['notary_hash'] = hex_hash
-        transaction_hash = add_to_blockchain(hex_hash)
+        transaction_hash = self.add_to_blockchain(hex_hash)
         if transaction_hash is not None:
             notarization['transaction_hash'] = transaction_hash
             notarization['date_created'] = datetime.now().isoformat(' ')
@@ -95,32 +95,37 @@ class NotarizationService(object):
         return None
 
     def create_notarization(self, notarization):
-        if not check_notarization(notarization):
+        if not self.check_notarization(notarization):
             return None
         try:
-            print "Notarization is "
-            print notarization
+            self.logger.debug("Notarization is %s " % notarization)
             self.notarization_table.put_item(Item=notarization)
         except botocore.exceptions.ClientError as e:
-            print(e.response['Error']['Code'])
+            self.logger.exception("Problem accessing notarization table %s " % e.response)
             return False
 
         return True
 
     def update_document_status(self, notarization, new_status):
-        self.notarization_table.update_item(
-            Key={
-                'document_hash': notarization['document_hash']
-            },
-            UpdateExpression="set document_status = :_status",
-            ExpressionAttributeValues={
-                ':_status': new_status
-            },
-            ReturnValues="UPDATED_NEW"
-        )
+        try:
+            self.notarization_table.update_item(
+                Key={
+                    'document_hash': notarization['document_hash']
+                },
+                UpdateExpression="set document_status = :_status",
+                ExpressionAttributeValues={
+                    ':_status': new_status
+                },
+                ReturnValues="UPDATED_NEW"
+            )
+        except botocore.exceptions.ClientError as e:
+            self.logger.exception("Problem accessing notarization table %s " % e.response)
 
     def get_notarization_by_document_hash(self, document_hash):
-        response = self.notarization_table.query(KeyConditionExpression=Key('document_hash').eq(document_hash))
+        try:
+            response = self.notarization_table.query(KeyConditionExpression=Key('document_hash').eq(document_hash))
+        except botocore.exceptions.ClientError as e:
+            self.logger.exception("Problem accessing notarization table %s " % e.response)
 
         if len(response['Items']) == 0:
             return None
@@ -136,12 +141,12 @@ class NotarizationService(object):
             return status_data
 
     def store_file(self, notarization, file_to_store):
-        s3 = boto3.resource('s3', region_name='us-east-1')
         try:
+            s3 = boto3.resource('s3', region_name='us-east-1')
             key = notarization['address']+'/'+notarization['document_hash']
             s3.Bucket('govern8r-notarized-documents').put_object(Key=key, Body=file_to_store, ACL='public-read')
             self.update_document_status(notarization, 'ON_FILE')
-            print ('https://bucket.s3.amazonaws.com'+'/'+key)
+            self.logger.debug ('https://bucket.s3.amazonaws.com'+'/'+key)
         except botocore.exceptions.ClientError as e:
-            print (e.response['Error']['Code'])
+            self.logger.exception("Problem accessing S3 %s " % e.response)
         return None
