@@ -1,6 +1,6 @@
 import hashlib
+import log_handlers
 from functools import wraps
-import socket
 import base58
 import configuration
 from flask import request, Response, json, g, redirect
@@ -8,22 +8,37 @@ from flask_api import FlaskAPI
 from message import SecureMessage
 import wallet
 import getpass
+import socket
 from account_service import AccountService
 from notarization_service import NotarizationService
 
 config = configuration.NotaryConfiguration('./notaryconfig.ini')
+logger = log_handlers.get_logger(config)
+logger.debug("-------------------------ENVIRONMENT--------------------------")
+logger.debug("Who Am I: %s " % getpass.getuser())
+logger.debug("Where Am I: %s " % socket.gethostname())
+logger.debug("Am I Local: %s " % config.is_local_host())
+logger.debug("CONFIGURATION SETTING[server_url]: %s " % config.get_server_url())
+logger.debug("CONFIGURATION SETTING[aws_region]: %s " % config.get_aws_region())
+logger.debug("CONFIGURATION SETTING[block_cypher_token]: %s " % config.get_block_cypher_token())
+logger.debug("CONFIGURATION SETTING[block_cypher_url]: %s " % config.get_block_cypher_url())
+logger.debug("CONFIGURATION SETTING[coin_network]: %s " % config.get_coin_network())
+logger.debug("CONFIGURATION SETTING[db_url]: %s " % config.get_db_url())
+logger.debug("CONFIGURATION SETTING[debug_log]: %s " % config.get_debug_log())
+logger.debug("CONFIGURATION SETTING[key_id]: %s " % config.get_key_id())
+logger.debug("CONFIGURATION SETTING[local_db_url]: %s " % config.get_local_db_url())
+logger.debug("CONFIGURATION SETTING[local_server_url]: %s " % config.get_local_server_url())
+logger.debug("CONFIGURATION SETTING[remote_db_url]: %s " % config.get_remote_db_url())
+logger.debug("CONFIGURATION SETTING[remote_server_url]: %s " % config.get_remote_server_url())
+logger.debug("CONFIGURATION SETTING[wallet_type]: %s " % config.get_wallet_type())
+logger.debug("-------------------------ENVIRONMENT--------------------------")
+
 keyId = config.get_key_id()
 application = FlaskAPI(__name__)
 wallet = wallet.create_wallet(config.get_wallet_type(), keyId)
-if config.is_local_host():
-    print("Local host")
-else:
-    print("Remote host")
-account_service = AccountService(wallet)
-notarization_service = NotarizationService(wallet)
+account_service = AccountService(wallet, logger)
+notarization_service = NotarizationService(wallet, logger)
 secure_message = SecureMessage(wallet)
-print ("Whoami: %s " % getpass.getuser())
-print ("Where am I: %s " % socket.gethostname())
 
 
 unauthenticated_response = Response(json.dumps({}), status=401, mimetype='application/json')
@@ -161,6 +176,9 @@ def pubkey():
     from hex to be used by the encryption utility.
     """
     # request.method == 'GET'
+    if application.debug:
+        logger.debug("Foobar")
+
     public_key = wallet.get_public_key()
     data = {
         'public_key': public_key.encode("hex")
@@ -412,4 +430,9 @@ def test_authentication(address):
 
 
 if __name__ == "__main__":
-    application.run(debug=True, use_reloader=False,ssl_context='adhoc')
+    # try:
+    #     1/0 #Love me a divide by zero.
+    # except ZeroDivisionError as e:
+    #     logger.exception("FFFFFFFFFFFFFFFFFFFFFFFUUUUUUUUUUUUUUUUUUUUUU")
+
+    application.run(debug=True, use_reloader=False, ssl_context='adhoc')
