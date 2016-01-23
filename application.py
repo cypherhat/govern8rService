@@ -35,7 +35,7 @@ logger.debug("-------------------------ENVIRONMENT--------------------------")
 
 keyId = config.get_key_id()
 application = FlaskAPI(__name__)
-wallet = wallet.create_wallet(config.get_wallet_type(), keyId)
+wallet = wallet.create_wallet(config.get_wallet_type(), config, logger)
 account_service = AccountService(wallet, logger)
 notarization_service = NotarizationService(wallet, logger)
 secure_message = SecureMessage(wallet)
