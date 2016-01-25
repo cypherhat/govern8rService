@@ -80,8 +80,7 @@ class AccountService(object):
             )
             self.logger.debug("Account Table is %s" % self.account_table.table_status)
         except botocore.exceptions.ClientError as e:
-            if e.response['Error']['Code'] == 'ResourceInUseException':
-                self.logger.exception("Houston, we have a problem: the Account Table exists.")
+            self.logger.exception("Houston, we have a problem: %s " % e.response)
 
     def create_account(self, address, account):
         if not check_account(account):
@@ -98,7 +97,12 @@ class AccountService(object):
                 account['date_created'] = datetime.now().isoformat(' ')
                 account['account_status'] = 'PENDING'
                 account['address'] = str(address)
-                self.account_table.put_item(Item=account)
+                try:
+                    account['file_encryption_key'] = self.wallet.generate_encrypted_private_key()
+                    self.account_table.put_item(Item=account)
+                except botocore.exceptions.ClientError as e:
+                    self.logger.exception("Houston, we have a problem: %s " % e.response)
+
                 return self.send_confirmation_email(account)
             else:
                 return None

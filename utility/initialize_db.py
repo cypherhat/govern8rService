@@ -64,3 +64,4 @@ try:
     print("Notarization Table status: %s " % notarization_table.table_status)
 except botocore.exceptions.ClientError as e:
     print(e.response['Error']['Code'])
+

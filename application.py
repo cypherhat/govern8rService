@@ -45,6 +45,17 @@ unauthenticated_response = Response(json.dumps({}), status=401, mimetype='applic
 unauthenticated_response.set_cookie('govern8r_token', 'UNAUTHENTICATED')
 
 
+def convert_account():
+    file_encryption_key = wallet.decrypt_from_hex(g.account_data['file_encryption_key'])
+    converted_account = dict(g.account_data)
+    converted_account['file_encryption_key'] = file_encryption_key
+    del converted_account['nonce']
+    del converted_account['account_status']
+    del converted_account['public_key']
+    del converted_account['address']
+    return converted_account
+
+
 def get_bad_response(status_code):
     bad_response = Response(json.dumps({}), status=status_code, mimetype='application/json')
     if 'govern8r_token' in request.cookies:
@@ -237,10 +248,10 @@ def get_account(address):
     address : string
        The Bitcoin address of the client.
     """
-
-    outbound_payload = secure_message.create_secure_payload(g.account_data['public_key'], json.dumps(g.account_data))
     authenticated_response = rotate_authentication_token()
-    authenticated_response.data = outbound_payload
+    account = convert_account()
+    outbound_payload = secure_message.create_secure_payload(g.account_data['public_key'], json.dumps(account))
+    authenticated_response.data = json.dumps(outbound_payload)
     return authenticated_response
 
 

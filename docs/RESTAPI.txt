@@ -130,11 +130,11 @@ Request Header:
 	cookie -> govern8r_token: "" ## the govern8r authentication token
 }
 
-Response: 
-{ 
-	public_key: "", ## client's public key
-	email: "",  ## the email address for the account
-	date_created: "" ## the date the user was created
+Response:
+{
+    "date_created": "2016-01-25 10:42:13.617881",
+    "email": "jeff_ploughman@troweprice.com",
+    "file_encryption_key": "b89c5505fda3065d0252b9a4df1d27f4ad684a6d425e5664b1028f1eadc3e3d9",
 }
 
 # Confirmation
@@ -228,3 +228,4 @@ RESOURCE: /govern8r/api/v1/account/<address>/document/<document_hash> (GET)
 # Check for existence of a document. If document doesn't exist, return 404
 # If document exists, return status ('ON_FILE', 'NOT_ON_FILE') and address of owner
 RESOURCE: /govern8r/api/v1/account/<address>/document/<document_hash>/status (GET)
+
