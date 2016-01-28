@@ -1,7 +1,7 @@
 import requests
 import boto3
 import botocore
-from blockcypher import embed_data, get_transaction_details
+from blockcypher import embed_data, get_transaction_details, subscribe_to_address_webhook
 from boto3.dynamodb.conditions import Key
 import hashlib
 from datetime import datetime
