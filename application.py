@@ -187,9 +187,6 @@ def pubkey():
     from hex to be used by the encryption utility.
     """
     # request.method == 'GET'
-    if application.debug:
-        logger.debug("Foobar")
-
     public_key = wallet.get_public_key()
     data = {
         'public_key': public_key.encode("hex")
