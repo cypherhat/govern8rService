@@ -41,10 +41,6 @@ notarization_service = NotarizationService(wallet, logger)
 secure_message = SecureMessage(wallet)
 
 
-unauthenticated_response = Response(json.dumps({}), status=401, mimetype='application/json')
-unauthenticated_response.set_cookie('govern8r_token', 'UNAUTHENTICATED')
-
-
 def convert_account():
     file_encryption_key = wallet.decrypt_from_hex(g.account_data['file_encryption_key'])
     converted_account = dict(g.account_data)
@@ -106,7 +102,8 @@ def authenticated(address):
         govern8r_token = request.cookies.get('govern8r_token')
     else:
         govern8r_token = 'UNAUTHENTICATED'
-    if g.account_data is None or g.account_data['nonce'] is None or govern8r_token == 'UNAUTHENTICATED':
+    if g.account_data is None or g.account_data['nonce'] is None \
+            or g.account_data['account_status'] == 'PENDING' or govern8r_token == 'UNAUTHENTICATED':
         return False
     return validate_token(g.account_data['nonce'], govern8r_token)
 
@@ -125,7 +122,7 @@ def login_required(f):
         if address is None:
             return get_bad_response(500)
         if not authenticated(address):
-            return unauthenticated_response
+            return get_bad_response(401)
         return f(*args, **kwargs)
     return decorated_function
 
@@ -137,7 +134,7 @@ def address_required(f):
         if address is None:
             return get_bad_response(500)
         else:
-             if not hasattr(g, 'account_data'):
+            if not hasattr(g, 'account_data'):
                 account_data = account_service.get_account_by_address(address)
                 if account_data is None:
                     return get_bad_response(404)
@@ -209,8 +206,10 @@ def put_challenge(address):
        The Bitcoin address of the client.
     """
 
+    if g.account_data['account_status'] == 'PENDING':
+        return get_bad_response(403)
     if g.message['nonce'] != g.account_data['nonce']:
-        return unauthenticated_response
+        return get_bad_response(401)
     govern8r_token = build_token(g.account_data['nonce'])
     good_response = Response(json.dumps({}), status=200, mimetype='application/json')
     good_response.set_cookie('govern8r_token', value=govern8r_token)
@@ -227,7 +226,8 @@ def get_challenge(address):
     address : string
        The Bitcoin address of the client.
     """
-
+    if g.account_data['account_status'] == 'PENDING':
+        return get_bad_response(403)
     str_nonce = json.dumps({'nonce': g.account_data['nonce']})
     payload = secure_message.create_secure_payload(g.account_data['public_key'], str_nonce)
     good_response = Response(json.dumps(payload), status=200, mimetype='application/json')
@@ -266,7 +266,7 @@ def put_account(address):
     good_response = Response(json.dumps({}), status=200, mimetype='application/json')
     response = account_service.create_account(address, g.message)
     if response is None:
-        return get_bad_response(500)
+        return get_bad_response(409)
     else:
         return good_response
 
@@ -319,7 +319,7 @@ def notarization(address, document_hash):
             authenticated_response.status_code = 500
         return authenticated_response
     else:
-        return unauthenticated_response
+        return get_bad_response(403)
 
 
 @application.route("/govern8r/api/v1/account/<address>/notarization/<document_hash>/status", methods=['GET'])
@@ -388,8 +388,7 @@ def download_document(address, document_hash):
     """
 
     if g.notarization_data['address'] != g.account_data['address']:
-        unauthenticated_response.status_code = 403
-        return unauthenticated_response
+        return get_bad_response(403)
 
     bucket_url = 'https://s3.amazonaws.com/govern8r-notarized-documents/'+address+'/'+document_hash
     print(bucket_url)
