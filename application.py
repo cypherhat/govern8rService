@@ -85,6 +85,8 @@ def previously_notarized(address, document_hash):
 
 def validate_token(nonce, token):
     check_token = build_token(nonce)
+    logger.debug("Authentication %s input token = " % token)
+    logger.debug("Authentication %s check_token = " % check_token)
     return check_token == token
 
 
