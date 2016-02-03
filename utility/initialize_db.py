@@ -41,26 +41,32 @@ except botocore.exceptions.ClientError as e:
 
 try:
     notarization_table = dynamodb.create_table(
-        TableName='Notarization',
-        KeySchema=[
-            {
-                'AttributeName': 'digest',
-                'KeyType': 'HASH'
-            }
-        ],
-        AttributeDefinitions=[
-            {
-                'AttributeName': 'digest',
-                'AttributeType': 'S'
-            }
-        ],
-        ProvisionedThroughput={
-            'ReadCapacityUnits': 10,
-            'WriteCapacityUnits': 10
-        }
-
-
-    )
+                    TableName='Notarization',
+                    KeySchema=[
+                        {
+                            'AttributeName': 'address',
+                            'KeyType': 'HASH'  #Partition key
+                        },
+                        {
+                            'AttributeName': 'document_hash',
+                            'KeyType': 'RANGE'  #Sort key
+                        }
+                    ],
+                    AttributeDefinitions=[
+                        {
+                            'AttributeName': 'address',
+                            'AttributeType': 'S'
+                        },
+                        {
+                            'AttributeName': 'document_hash',
+                            'AttributeType': 'S'
+                        }
+                    ],
+                    ProvisionedThroughput={
+                        'ReadCapacityUnits': 10,
+                        'WriteCapacityUnits': 10
+                    }
+            )
     print("Notarization Table status: %s " % notarization_table.table_status)
 except botocore.exceptions.ClientError as e:
     print(e.response['Error']['Code'])

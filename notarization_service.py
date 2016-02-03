@@ -54,11 +54,19 @@ class NotarizationService(object):
                     TableName='Notarization',
                     KeySchema=[
                         {
+                            'AttributeName': 'address',
+                            'KeyType': 'HASH'  #Partition key
+                        },
+                        {
                             'AttributeName': 'document_hash',
-                            'KeyType': 'HASH'
+                            'KeyType': 'RANGE'  #Sort key
                         }
                     ],
                     AttributeDefinitions=[
+                        {
+                            'AttributeName': 'address',
+                            'AttributeType': 'S'
+                        },
                         {
                             'AttributeName': 'document_hash',
                             'AttributeType': 'S'
@@ -121,9 +129,9 @@ class NotarizationService(object):
         except botocore.exceptions.ClientError as e:
             self.logger.exception("Problem accessing notarization table %s " % e.response)
 
-    def get_notarization_by_document_hash(self, document_hash):
+    def get_notarization_by_document_hash(self, address, document_hash):
         try:
-            response = self.notarization_table.query(KeyConditionExpression=Key('document_hash').eq(document_hash))
+            response = self.notarization_table.query(KeyConditionExpression=Key('address').eq(address) & Key('document_hash').eq(document_hash))
         except botocore.exceptions.ClientError as e:
             self.logger.exception("Problem accessing notarization table %s " % e.response)
 

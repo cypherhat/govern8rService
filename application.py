@@ -75,8 +75,8 @@ def build_token(nonce):
     return encoded
 
 
-def previously_notarized(document_hash):
-    notarization_data = notarization_service.get_notarization_by_document_hash(document_hash)
+def previously_notarized(address, document_hash):
+    notarization_data = notarization_service.get_notarization_by_document_hash(address, document_hash)
     if notarization_data is not None:
         return True
     else:
@@ -147,10 +147,10 @@ def notarization_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         document_hash = kwargs['document_hash']
-        if document_hash is None:
+        if document_hash is None or g.account_data is None:
             return get_bad_response(500)
         else:
-            notarization_data = notarization_service.get_notarization_by_document_hash(document_hash)
+            notarization_data = notarization_service.get_notarization_by_document_hash(g.account_data['address'], document_hash)
             if notarization_data is None:
                 return get_bad_response(404)
             g.notarization_data = notarization_data
@@ -305,7 +305,7 @@ def notarization(address, document_hash):
 
     authenticated_response = rotate_authentication_token()
 
-    if previously_notarized(document_hash):
+    if previously_notarized(address, document_hash):
         authenticated_response.status_code = 500
         return authenticated_response
 
