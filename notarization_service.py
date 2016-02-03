@@ -12,7 +12,6 @@ config = configuration.NotaryConfiguration('./notaryconfig.ini')
 blockcypher_token = config.get_block_cypher_token()
 
 
-
 class NotarizationService(object):
     def __init__(self, wallet, logger):
         self.wallet = wallet
