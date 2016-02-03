@@ -140,8 +140,8 @@ class NotarizationService(object):
         else:
             return response['Items'][0]
 
-    def get_notarization_status(self, document_hash):
-        notarization_data = self.get_notarization_by_document_hash(document_hash)
+    def get_notarization_status(self, address, document_hash):
+        notarization_data = self.get_notarization_by_document_hash(address, document_hash)
         status_data = get_transaction_details(notarization_data['transaction_hash'], config.get_coin_network())
         if status_data is None:
             return None
