@@ -118,6 +118,7 @@ class NotarizationService(object):
         try:
             self.notarization_table.update_item(
                 Key={
+                    'address': notarization['address'],
                     'document_hash': notarization['document_hash']
                 },
                 UpdateExpression="set document_status = :_status",
