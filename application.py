@@ -344,7 +344,7 @@ def notarization_status(address, document_hash):
         authenticated_response.status_code = 404
         return authenticated_response
 
-    status_data = notarization_service.get_notarization_status(document_hash)
+    status_data = notarization_service.get_notarization_status(g.account_data['address'], document_hash)
     if status_data is not None:
         outbound_payload = secure_message.create_secure_payload(g.account_data['public_key'], json.dumps(status_data))
         authenticated_response.data = json.dumps(outbound_payload)
