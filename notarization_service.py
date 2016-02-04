@@ -1,7 +1,7 @@
 import requests
 import boto3
 import botocore
-from blockcypher import embed_data, get_transaction_details, subscribe_to_address_webhook
+from blockcypher import embed_data, get_transaction_details
 from boto3.dynamodb.conditions import Key
 import hashlib
 from datetime import datetime
@@ -139,6 +139,14 @@ class NotarizationService(object):
             return None
         else:
             return response['Items'][0]
+
+    def get_notarizations_by_address(self, address):
+        try:
+            response = self.notarization_table.query(KeyConditionExpression=Key('address').eq(address))
+        except botocore.exceptions.ClientError as e:
+            self.logger.exception("Problem accessing notarization table %s " % e.response)
+
+        return response['Items']
 
     def get_notarization_status(self, address, document_hash):
         notarization_data = self.get_notarization_by_document_hash(address, document_hash)

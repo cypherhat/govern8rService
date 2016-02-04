@@ -420,26 +420,24 @@ def check_document_status(address, document_hash):
     return authenticated_response
 
 
-@application.route("/govern8r/api/v1/account/<address>/test", methods=['GET'])
+@application.route("/govern8r/api/v1/account/<address>/notarizations", methods=['GET'])
 @login_required
 @address_required
-def test_authentication(address):
+def notarizations(address):
     """
-    Test authentication
+    Notarize document
     Parameters
     ----------
     address : string
        The Bitcoin address of the client.
     """
-
     authenticated_response = rotate_authentication_token()
+    notarizations = notarization_service.get_notarizations_by_address(address)
+    outbound_payload = secure_message.create_secure_payload(g.account_data['public_key'], json.dumps(notarizations))
+    authenticated_response.data = json.dumps(outbound_payload)
+
     return authenticated_response
 
 
 if __name__ == "__main__":
-    # try:
-    #     1/0 #Love me a divide by zero.
-    # except ZeroDivisionError as e:
-    #     logger.exception("FFFFFFFFFFFFFFFFFFFFFFFUUUUUUUUUUUUUUUUUUUUUU")
-
     application.run(debug=True, use_reloader=False, ssl_context='adhoc')
