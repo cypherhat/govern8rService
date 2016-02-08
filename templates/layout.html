@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Waiting For Satoshi</title>
+		<link rel=stylesheet type=text/css media="all" href="{{ url_for('static', filename='demo.css') }}">
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+		<script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>		
+	</head>
+	<body>
+		<div class="container">
+			<div class="header">
+				<ul class="nav nav-pills pull-right">
+					<li class="active"><a href="/story">Story</a></li>
+					<li><a href="https://git-codecommit.us-east-1.amazonaws.com/v1/repos/waitingforsatoshi">Core Code</a></li>
+					<li><a href="https://git-codecommit.us-east-1.amazonaws.com/v1/repos/waitingforsatoshi-service">Server Code</a></li>
+					<li><a href="https://git-codecommit.us-east-1.amazonaws.com/v1/repos/waitingforsatoshi-client">Client Code</a></li>
+					{% if session.uid %}
+						<li><a href="/user">{{ params_tpl['user_address'] }}</a></li>
+					{% endif %}					
+				</ul>
+				<h3><a class="text-muted" style="text-decoration: none;" href="/">Waiting for Satoshi</a></h3>
+			</div>
+			{% block body %}{% endblock %}
+		</div>	
+	</body>
+</html>
