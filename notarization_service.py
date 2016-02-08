@@ -160,7 +160,7 @@ class NotarizationService(object):
         try:
             s3 = boto3.resource('s3', region_name='us-east-1')
             key = notarization['address']+'/'+notarization['document_hash']
-            s3.Bucket('satoshi-notarized-documents').put_object(Key=key, Body=file_to_store, ACL='public-read')
+            s3.Bucket(config.get_bucket_name()).put_object(Key=key, Body=file_to_store, ACL='public-read')
             self.update_document_status(notarization, 'ON_FILE')
             self.logger.debug ('https://bucket.s3.amazonaws.com'+'/'+key)
         except botocore.exceptions.ClientError as e:

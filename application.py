@@ -390,7 +390,7 @@ def download_document(address, document_hash):
     if g.notarization_data['address'] != g.account_data['address']:
         return get_bad_response(403)
 
-    bucket_url = 'https://s3.amazonaws.com/govern8r-notarized-documents/'+address+'/'+document_hash
+    bucket_url = 'https://s3.amazonaws.com/'+config.get_bucket_name()+'/'+address+'/'+document_hash
     print(bucket_url)
 
     return redirect(bucket_url)
