@@ -2,6 +2,7 @@ import hashlib
 import log_handlers
 from functools import wraps
 import base58
+from flask.templating import render_template
 import configuration
 from flask import request, Response, json, g, redirect
 from flask_api import FlaskAPI
@@ -173,8 +174,10 @@ def security_required(f):
 
 
 @application.route("/", methods=['GET'])
-def hello_server():
-    return {}
+@application.route("/home", methods=["GET"])
+def home():
+    params_tpl = {}
+    return render_template('index.html', params_tpl=params_tpl)
 
 
 @application.route("/govern8r/api/v1/pubkey", methods=['GET'])
