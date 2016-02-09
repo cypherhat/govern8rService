@@ -7,6 +7,8 @@ from flask.templating import render_template
 import configuration
 from flask import request, Response, json, g, redirect
 from flask_api import FlaskAPI
+from flask.ext.api.decorators import set_renderers
+from flask_api.renderers import HTMLRenderer
 from message import SecureMessage
 import wallet
 import getpass
